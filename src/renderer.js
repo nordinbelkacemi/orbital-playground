@@ -97,8 +97,6 @@ class Renderer {
 
     _drawBgStars(ctx, frame) {
         for (const star of this.bgStars) {
-            const pos = this.worldToScreen(star.x, star.y);
-
             /* Simple parallax: bg stars move at 30% speed */
             const parallax = 0.3;
             const px = (star.x - this.camera.x * parallax) * this.camera.zoom * 0.3 + this.width / 2;

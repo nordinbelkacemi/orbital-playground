@@ -1,0 +1,28 @@
+{
+  "name": "orbital-playground",
+  "version": "1.0.0",
+  "description": "Interactive N-body gravity simulator — place stars, planets & moons, fling them into orbit, and watch orbital mechanics unfold in real-time.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "dev": "npx serve src -l 3000 --no-clipboard"
+  },
+  "keywords": [
+    "gravity",
+    "simulator",
+    "orbital-mechanics",
+    "n-body",
+    "physics",
+    "canvas",
+    "interactive"
+  ],
+  "author": "nordinbelkacemi",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "globals": "^16.0.0"
+  }
+}

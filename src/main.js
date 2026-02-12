@@ -150,7 +150,7 @@
         dragState.screenY = touch.clientY;
     }, { passive: false });
 
-    canvas.addEventListener('touchend', (e) => {
+    canvas.addEventListener('touchend', (_e) => {
         if (!dragState.dragging) return;
         dragState.dragging = false;
 
