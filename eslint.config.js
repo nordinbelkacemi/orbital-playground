@@ -6,16 +6,12 @@ export default [
     {
         languageOptions: {
             ecmaVersion: 2022,
-            sourceType: 'script',
+            sourceType: 'module',
             globals: {
                 ...globals.browser,
-                Simulation: 'writable',
-                Renderer: 'writable',
-                BODY_PRESETS: 'writable',
             },
         },
         rules: {
-            'no-redeclare': 'off',
             'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
             'no-console': 'warn',
             'eqeqeq': 'error',
