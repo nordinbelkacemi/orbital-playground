@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="An interactive orbital mechanics simulator — create celestial bodies, set velocities, and watch gravitational physics unfold in real-time.">
+    <title>Orbital Playground — Gravity Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <canvas id="sim-canvas"></canvas>
+
+    <!-- Top bar -->
+    <header id="top-bar">
+        <div class="logo">
+            <span class="logo-icon">◉</span>
+            <h1>Orbital Playground</h1>
+        </div>
+        <nav id="body-picker" aria-label="Celestial body type selector">
+            <button class="body-btn active" data-type="planet" id="btn-planet">
+                <span class="body-preview planet-preview"></span>
+                Planet
+            </button>
+            <button class="body-btn" data-type="star" id="btn-star">
+                <span class="body-preview star-preview"></span>
+                Star
+            </button>
+            <button class="body-btn" data-type="moon" id="btn-moon">
+                <span class="body-preview moon-preview"></span>
+                Moon
+            </button>
+        </nav>
+        <div class="top-actions">
+            <button id="btn-clear" class="action-btn" aria-label="Clear all bodies">
+                <span class="action-icon">✕</span> Clear
+            </button>
+            <button id="btn-pause" class="action-btn" aria-label="Pause simulation">
+                <span class="action-icon" id="pause-icon">❚❚</span>
+                <span id="pause-label">Pause</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hint overlay -->
+    <div id="hint-overlay">
+        <p><strong>Click</strong> to place a body · <strong>Drag</strong> to set velocity · <strong>Scroll</strong> to
+            zoom</p>
+    </div>
+
+    <!-- Info panel (bottom-left) -->
+    <aside id="info-panel">
+        <div class="info-row">
+            <span class="info-label">Bodies</span>
+            <span class="info-value" id="info-count">0</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Time</span>
+            <span class="info-value" id="info-time">0.0s</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">FPS</span>
+            <span class="info-value" id="info-fps">60</span>
+        </div>
+    </aside>
+
+    <!-- Controls panel (bottom-right) -->
+    <aside id="controls-panel">
+        <div class="control-group">
+            <label for="slider-trail">Trail Length</label>
+            <input type="range" id="slider-trail" min="0" max="500" value="200">
+        </div>
+        <div class="control-group">
+            <label for="slider-speed">Time Scale</label>
+            <input type="range" id="slider-speed" min="0.5" max="10" value="2" step="0.5">
+        </div>
+        <div class="control-group">
+            <label for="slider-gravity">Gravity (G)</label>
+            <input type="range" id="slider-gravity" min="1" max="30" value="8" step="0.5">
+        </div>
+    </aside>
+
+    <script src="simulation.js"></script>
+    <script src="renderer.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
