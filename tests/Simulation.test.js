@@ -85,6 +85,39 @@ describe('Simulation', () => {
         });
     });
 
+    describe('close encounters', () => {
+        it('softening prevents infinite acceleration at very close range', () => {
+            sim.addBody('star', new Vector2(0, 0));
+            sim.addBody('planet', new Vector2(1, 0), new Vector2(0, 50));
+
+            /* Run 100 frames — should not produce NaN or Infinity */
+            for (let i = 0; i < 100; i++) {
+                sim.step(0.016, 1);
+            }
+
+            for (const body of sim.bodies) {
+                expect(Number.isFinite(body.pos.x)).toBe(true);
+                expect(Number.isFinite(body.pos.y)).toBe(true);
+                expect(Number.isFinite(body.vel.x)).toBe(true);
+                expect(Number.isFinite(body.vel.y)).toBe(true);
+            }
+        });
+
+        it('high speed flyby does not produce NaN positions', () => {
+            sim.addBody('star', new Vector2(0, 0));
+            sim.addBody('moon', new Vector2(50, 10), new Vector2(-200, 0));
+
+            for (let i = 0; i < 200; i++) {
+                sim.step(0.016, 1);
+            }
+
+            for (const body of sim.bodies) {
+                expect(Number.isFinite(body.pos.x)).toBe(true);
+                expect(Number.isFinite(body.pos.y)).toBe(true);
+            }
+        });
+    });
+
     describe('collisions', () => {
         it('merges overlapping bodies', () => {
             sim.addBody('star', new Vector2(0, 0));

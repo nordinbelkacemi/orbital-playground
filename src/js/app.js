@@ -114,7 +114,13 @@ const input = new InputHandler(canvas, {
 
     onDragEnd(worldStart, worldEnd) {
         drag.active = false;
-        const vel = worldEnd.sub(worldStart).scale(INPUT.DRAG_VELOCITY_SCALE);
+        let vel = worldEnd.sub(worldStart).scale(INPUT.DRAG_VELOCITY_SCALE);
+
+        /* Clamp to max launch speed (preserving direction) */
+        if (vel.mag > INPUT.MAX_LAUNCH_SPEED) {
+            vel = vel.normalized.scale(INPUT.MAX_LAUNCH_SPEED);
+        }
+
         sim.addBody(drag.type, worldStart, vel);
     },
 

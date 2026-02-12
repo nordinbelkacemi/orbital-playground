@@ -9,7 +9,7 @@
 export const PHYSICS = Object.freeze({
     G: 800,
     SOFTENING: 8,
-    SUBSTEPS: 4,
+    SUBSTEPS: 6,
     MAX_FRAME_DT: 0.05,
     DEFAULT_TIME_SCALE: 2,
 });
@@ -56,7 +56,8 @@ export const RENDERING = Object.freeze({
 
 /** Input tuning. */
 export const INPUT = Object.freeze({
-    DRAG_VELOCITY_SCALE: 0.08,
+    DRAG_VELOCITY_SCALE: 0.04,
+    MAX_LAUNCH_SPEED: 150,
     ZOOM_IN_FACTOR: 1.08,
     ZOOM_OUT_FACTOR: 0.92,
     MIN_ZOOM: 0.15,
