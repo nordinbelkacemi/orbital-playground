@@ -8,8 +8,11 @@
  * The engine uses sub-stepping: each visual frame is divided into multiple
  * smaller physics steps, which dramatically improves accuracy for close
  * encounters and fast-moving bodies.
+ *
+ * Physics operates in full 3D — bodies orbit in whatever plane they are
+ * placed in. The demo scene uses the XZ plane for a nice top-down view.
  */
-import Vector2 from './Vector2.js';
+import Vector3 from './Vector3.js';
 import Body from './Body.js';
 import { PHYSICS, BODY_TYPES } from '../config.js';
 
@@ -45,11 +48,11 @@ export default class Simulation {
     /**
      * Add a body to the simulation.
      * @param {string}  type     - 'star' | 'planet' | 'moon'
-     * @param {Vector2} position
-     * @param {Vector2} [velocity]
+     * @param {Vector3} position
+     * @param {Vector3} [velocity]
      * @returns {Body} The created body.
      */
-    addBody(type, position, velocity = Vector2.zero()) {
+    addBody(type, position, velocity = Vector3.zero()) {
         const body = new Body(type, position, velocity);
         this.bodies.push(body);
         return body;
@@ -74,10 +77,11 @@ export default class Simulation {
 
     /**
      * Spawn a demo solar system with analytically correct circular orbits.
+     * Bodies orbit in the XZ plane (y=0) for a natural 3D top-down view.
      */
     createDemoScene() {
         this.clear();
-        this.addBody('star', new Vector2(0, 0));
+        this.addBody('star', new Vector3(0, 0, 0));
 
         const M = BODY_TYPES.star.mass;
         const orbits = [
@@ -89,8 +93,9 @@ export default class Simulation {
 
         for (const { type, r, angle } of orbits) {
             const speed = this.orbitalSpeed(M, r);
-            const pos = new Vector2(Math.cos(angle) * r, Math.sin(angle) * r);
-            const vel = new Vector2(-Math.sin(angle) * speed, Math.cos(angle) * speed);
+            /* XZ plane: position along XZ, velocity perpendicular in XZ */
+            const pos = new Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+            const vel = new Vector3(-Math.sin(angle) * speed, 0, Math.cos(angle) * speed);
             this.addBody(type, pos, vel);
         }
     }
@@ -145,10 +150,10 @@ export default class Simulation {
         }
     }
 
-    /** Compute gravitational accelerations for all body pairs. */
+    /** Compute gravitational accelerations for all body pairs (3D). */
     _computeAccelerations() {
         for (const b of this.bodies) {
-            b.acc = Vector2.zero();
+            b.acc = Vector3.zero();
         }
 
         const softSq = this.softening * this.softening;
@@ -160,15 +165,25 @@ export default class Simulation {
 
                 const dx = b.pos.x - a.pos.x;
                 const dy = b.pos.y - a.pos.y;
-                const distSq = dx * dx + dy * dy + softSq;
+                const dz = b.pos.z - a.pos.z;
+                const distSq = dx * dx + dy * dy + dz * dz + softSq;
                 const dist = Math.sqrt(distSq);
                 const force = this.G * a.mass * b.mass / distSq;
 
                 const fx = force * dx / dist;
                 const fy = force * dy / dist;
+                const fz = force * dz / dist;
 
-                a.acc = new Vector2(a.acc.x + fx / a.mass, a.acc.y + fy / a.mass);
-                b.acc = new Vector2(b.acc.x - fx / b.mass, b.acc.y - fy / b.mass);
+                a.acc = new Vector3(
+                    a.acc.x + fx / a.mass,
+                    a.acc.y + fy / a.mass,
+                    a.acc.z + fz / a.mass,
+                );
+                b.acc = new Vector3(
+                    b.acc.x - fx / b.mass,
+                    b.acc.y - fy / b.mass,
+                    b.acc.z - fz / b.mass,
+                );
             }
         }
     }
@@ -182,7 +197,7 @@ export default class Simulation {
 
                 const a = this.bodies[i];
                 const b = this.bodies[j];
-                const dist = Vector2.dist(a.pos, b.pos);
+                const dist = Vector3.dist(a.pos, b.pos);
 
                 if (dist < (a.radius + b.radius) * 0.6) {
                     const [big, small] = a.mass >= b.mass ? [a, b] : [b, a];

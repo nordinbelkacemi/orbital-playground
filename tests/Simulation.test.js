@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import Simulation from '../src/js/core/Simulation.js';
-import Vector2 from '../src/js/core/Vector2.js';
+import Vector3 from '../src/js/core/Vector3.js';
 
 describe('Simulation', () => {
     /** @type {Simulation} */
@@ -21,15 +21,15 @@ describe('Simulation', () => {
         });
 
         it('adds a body and returns it', () => {
-            const body = sim.addBody('planet', new Vector2(100, 0));
+            const body = sim.addBody('planet', new Vector3(100, 0, 0));
             expect(sim.bodies).toHaveLength(1);
             expect(body.type).toBe('planet');
             expect(body.pos.x).toBe(100);
         });
 
         it('clear removes all bodies and resets time', () => {
-            sim.addBody('star', new Vector2(0, 0));
-            sim.addBody('planet', new Vector2(100, 0));
+            sim.addBody('star', new Vector3(0, 0, 0));
+            sim.addBody('planet', new Vector3(100, 0, 0));
             sim.step(0.016, 1);
             sim.clear();
             expect(sim.bodies).toHaveLength(0);
@@ -39,24 +39,33 @@ describe('Simulation', () => {
 
     describe('physics', () => {
         it('advances elapsed time', () => {
-            sim.addBody('star', new Vector2(0, 0));
+            sim.addBody('star', new Vector3(0, 0, 0));
             sim.step(0.016, 1);
             expect(sim.elapsed).toBeGreaterThan(0);
         });
 
         it('gravitational attraction moves bodies toward each other', () => {
-            sim.addBody('star', new Vector2(0, 0), Vector2.zero());
-            sim.addBody('planet', new Vector2(200, 0), Vector2.zero());
+            sim.addBody('star', new Vector3(0, 0, 0), Vector3.zero());
+            sim.addBody('planet', new Vector3(200, 0, 0), Vector3.zero());
 
             const initialDist = 200;
             sim.step(0.016, 1);
-            const newDist = Vector2.dist(sim.bodies[0].pos, sim.bodies[1].pos);
+            const newDist = Vector3.dist(sim.bodies[0].pos, sim.bodies[1].pos);
 
             expect(newDist).toBeLessThan(initialDist);
         });
 
+        it('gravity works in z-axis too', () => {
+            sim.addBody('star', new Vector3(0, 0, 0), Vector3.zero());
+            sim.addBody('planet', new Vector3(0, 0, 200), Vector3.zero());
+
+            sim.step(0.016, 1);
+            const newDist = Vector3.dist(sim.bodies[0].pos, sim.bodies[1].pos);
+            expect(newDist).toBeLessThan(200);
+        });
+
         it('does not move bodies when paused', () => {
-            sim.addBody('planet', new Vector2(100, 0), new Vector2(0, 10));
+            sim.addBody('planet', new Vector3(100, 0, 0), new Vector3(0, 0, 10));
             sim.paused = true;
             sim.step(0.016, 1);
             expect(sim.bodies[0].pos.x).toBe(100);
@@ -67,10 +76,10 @@ describe('Simulation', () => {
     describe('orbital stability', () => {
         it('circular orbit remains bound over 500 frames', () => {
             const stableSim = new Simulation({ substeps: 8 });
-            stableSim.addBody('star', new Vector2(0, 0));
+            stableSim.addBody('star', new Vector3(0, 0, 0));
             const r = 300;
             const v = stableSim.orbitalSpeed(3000, r);
-            stableSim.addBody('planet', new Vector2(r, 0), new Vector2(0, v));
+            stableSim.addBody('planet', new Vector3(r, 0, 0), new Vector3(0, 0, v));
 
             for (let i = 0; i < 500; i++) {
                 stableSim.step(0.016, 1);
@@ -78,19 +87,16 @@ describe('Simulation', () => {
 
             const planet = stableSim.bodies[1];
             const finalR = planet.pos.mag;
-            /* Body should remain gravitationally bound — not escape */
             expect(finalR).toBeLessThan(r * 2);
-            /* Body should not collapse into the star */
             expect(finalR).toBeGreaterThan(r * 0.2);
         });
     });
 
     describe('close encounters', () => {
         it('softening prevents infinite acceleration at very close range', () => {
-            sim.addBody('star', new Vector2(0, 0));
-            sim.addBody('planet', new Vector2(1, 0), new Vector2(0, 50));
+            sim.addBody('star', new Vector3(0, 0, 0));
+            sim.addBody('planet', new Vector3(1, 0, 0), new Vector3(0, 0, 50));
 
-            /* Run 100 frames — should not produce NaN or Infinity */
             for (let i = 0; i < 100; i++) {
                 sim.step(0.016, 1);
             }
@@ -98,14 +104,16 @@ describe('Simulation', () => {
             for (const body of sim.bodies) {
                 expect(Number.isFinite(body.pos.x)).toBe(true);
                 expect(Number.isFinite(body.pos.y)).toBe(true);
+                expect(Number.isFinite(body.pos.z)).toBe(true);
                 expect(Number.isFinite(body.vel.x)).toBe(true);
                 expect(Number.isFinite(body.vel.y)).toBe(true);
+                expect(Number.isFinite(body.vel.z)).toBe(true);
             }
         });
 
         it('high speed flyby does not produce NaN positions', () => {
-            sim.addBody('star', new Vector2(0, 0));
-            sim.addBody('moon', new Vector2(50, 10), new Vector2(-200, 0));
+            sim.addBody('star', new Vector3(0, 0, 0));
+            sim.addBody('moon', new Vector3(50, 0, 10), new Vector3(-200, 0, 0));
 
             for (let i = 0; i < 200; i++) {
                 sim.step(0.016, 1);
@@ -114,21 +122,22 @@ describe('Simulation', () => {
             for (const body of sim.bodies) {
                 expect(Number.isFinite(body.pos.x)).toBe(true);
                 expect(Number.isFinite(body.pos.y)).toBe(true);
+                expect(Number.isFinite(body.pos.z)).toBe(true);
             }
         });
     });
 
     describe('collisions', () => {
         it('merges overlapping bodies', () => {
-            sim.addBody('star', new Vector2(0, 0));
-            sim.addBody('planet', new Vector2(5, 0));
+            sim.addBody('star', new Vector3(0, 0, 0));
+            sim.addBody('planet', new Vector3(5, 0, 0));
             sim.step(0.016, 1);
             expect(sim.bodies).toHaveLength(1);
         });
 
         it('merged body conserves total mass', () => {
-            const a = sim.addBody('star', new Vector2(0, 0));
-            const b = sim.addBody('planet', new Vector2(5, 0));
+            const a = sim.addBody('star', new Vector3(0, 0, 0));
+            const b = sim.addBody('planet', new Vector3(5, 0, 0));
             const totalMass = a.mass + b.mass;
             sim.step(0.016, 1);
             expect(sim.bodies[0].mass).toBe(totalMass);
@@ -147,6 +156,7 @@ describe('Simulation', () => {
             expect(star.type).toBe('star');
             expect(star.pos.x).toBe(0);
             expect(star.pos.y).toBe(0);
+            expect(star.pos.z).toBe(0);
         });
     });
 

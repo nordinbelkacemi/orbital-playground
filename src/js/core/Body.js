@@ -3,7 +3,7 @@
  * Represents a single celestial body in the simulation. Bodies are plain
  * data containers — all behaviour lives in the Simulation engine.
  */
-import Vector2 from './Vector2.js';
+import Vector3 from './Vector3.js';
 import { BODY_TYPES, PALETTES, RENDERING } from '../config.js';
 
 /** Running palette index per type, so consecutive bodies get different colors. */
@@ -12,10 +12,10 @@ const _paletteIndex = { star: 0, planet: 0, moon: 0 };
 export default class Body {
     /**
      * @param {string}  type - 'star' | 'planet' | 'moon'
-     * @param {Vector2} position
-     * @param {Vector2} velocity
+     * @param {Vector3} position
+     * @param {Vector3} velocity
      */
-    constructor(type, position, velocity = Vector2.zero()) {
+    constructor(type, position, velocity = Vector3.zero()) {
         const preset = BODY_TYPES[type];
         const palette = PALETTES[type];
         const colors = palette[_paletteIndex[type] % palette.length];
@@ -41,17 +41,17 @@ export default class Body {
         this.trailColor = colors.trail;
 
         /* Physics state */
-        /** @type {Vector2} */
+        /** @type {Vector3} */
         this.pos = position;
 
-        /** @type {Vector2} */
+        /** @type {Vector3} */
         this.vel = velocity;
 
-        /** @type {Vector2} */
-        this.acc = Vector2.zero();
+        /** @type {Vector3} */
+        this.acc = Vector3.zero();
 
         /* Trail history */
-        /** @type {Vector2[]} */
+        /** @type {Vector3[]} */
         this.trail = [];
 
         /** @type {number} */
