@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="An interactive N-body gravity simulator — create celestial bodies, set velocities, and watch orbital mechanics unfold in real-time.">
-    <title>Orbital Playground — Gravity Simulator</title>
+        content="An interactive 3D N-body gravity simulator — create celestial bodies, set velocities, and watch orbital mechanics unfold in real-time.">
+    <title>Orbital Playground — 3D Gravity Simulator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -51,8 +51,8 @@
 
     <!-- Hint overlay -->
     <div id="hint-overlay">
-        <p><strong>Click</strong> to place a body · <strong>Drag</strong> to set velocity · <strong>Scroll</strong> to
-            zoom</p>
+        <p><strong>Click</strong> to place · <strong>Drag</strong> to set velocity · <strong>Right-drag</strong> to
+            orbit camera · <strong>Scroll</strong> to zoom</p>
     </div>
 
     <!-- Info panel (bottom-left) -->
@@ -87,6 +87,14 @@
         </div>
     </aside>
 
+    <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
     <script type="module" src="js/app.js"></script>
 </body>
 

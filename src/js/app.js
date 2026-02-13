@@ -5,15 +5,15 @@
  * every other module — all other modules are decoupled from each other.
  */
 import Simulation from './core/Simulation.js';
-import Renderer from './rendering/Renderer.js';
-import InputHandler from './input/InputHandler.js';
+import Vector3 from './core/Vector3.js';
+import Renderer3D from './rendering/Renderer3D.js';
 import { INPUT, PHYSICS } from './config.js';
 
 /* ── Instances ── */
 
 const canvas = document.getElementById('sim-canvas');
 const sim = new Simulation();
-const renderer = new Renderer(canvas);
+const renderer = new Renderer3D(canvas);
 
 /* ── State ── */
 
@@ -23,16 +23,6 @@ let frameCount = 0;
 let lastTime = performance.now();
 let fpsSmooth = 60;
 let hintDismissed = false;
-
-/** Live drag state shared with the renderer. */
-const drag = {
-    active: false,
-    type: 'planet',
-    worldX: 0,
-    worldY: 0,
-    screenX: 0,
-    screenY: 0,
-};
 
 /* ── UI References ── */
 
@@ -87,7 +77,7 @@ ui.sliderGravity.addEventListener('input', () => {
     sim.G = parseFloat(ui.sliderGravity.value) * 100;
 });
 
-/* ── Input Handler ── */
+/* ── Body Placement (click on canvas → raycast to XZ plane) ── */
 
 function dismissHint() {
     if (!hintDismissed) {
@@ -96,57 +86,72 @@ function dismissHint() {
     }
 }
 
-const input = new InputHandler(canvas, {
-    onDragStart(worldPos, screenPos) {
+/** Convert screen pixel coords to NDC (-1..1). */
+function screenToNDC(x, y) {
+    return {
+        x: (x / window.innerWidth) * 2 - 1,
+        y: -(y / window.innerHeight) * 2 + 1,
+    };
+}
+
+let dragStart = null;
+
+canvas.addEventListener('pointerdown', (e) => {
+    /* Ignore right-click and middle-click (used by OrbitControls) */
+    if (e.button !== 0) return;
+
+    /* Ignore if the camera is being dragged (shift/ctrl held) */
+    if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+
+    const ndc = screenToNDC(e.clientX, e.clientY);
+    const worldPos = renderer.raycastToPlane(ndc.x, ndc.y);
+
+    if (worldPos) {
         dismissHint();
-        drag.active = true;
-        drag.type = selectedType;
-        drag.worldX = worldPos.x;
-        drag.worldY = worldPos.y;
-        drag.screenX = screenPos.x;
-        drag.screenY = screenPos.y;
-    },
-
-    onDragMove(screenPos) {
-        drag.screenX = screenPos.x;
-        drag.screenY = screenPos.y;
-    },
-
-    onDragEnd(worldStart, worldEnd) {
-        drag.active = false;
-        let vel = worldEnd.sub(worldStart).scale(INPUT.DRAG_VELOCITY_SCALE);
-
-        /* Clamp to max launch speed (preserving direction) */
-        if (vel.mag > INPUT.MAX_LAUNCH_SPEED) {
-            vel = vel.normalized.scale(INPUT.MAX_LAUNCH_SPEED);
-        }
-
-        sim.addBody(drag.type, worldStart, vel);
-    },
-
-    onZoom(sx, sy, delta) {
-        renderer.camera.zoomAt(sx, sy, delta);
-    },
-
-    onPan(dx, dy) {
-        renderer.camera.pan(dx, dy);
-    },
-
-    onKey(key) {
-        const keyActions = {
-            ' ': () => ui.btnPause.click(),
-            'c': () => ui.btnClear.click(),
-            'C': () => ui.btnClear.click(),
-            '1': () => selectType('planet'),
-            '2': () => selectType('star'),
-            '3': () => selectType('moon'),
-        };
-        keyActions[key]?.();
-    },
+        dragStart = worldPos;
+    }
 });
 
-/* Provide the coordinate converter to the input handler */
-input.setScreenToWorld((sx, sy) => renderer.camera.screenToWorld(sx, sy));
+canvas.addEventListener('pointerup', (e) => {
+    if (e.button !== 0 || !dragStart) return;
+
+    const ndc = screenToNDC(e.clientX, e.clientY);
+    const worldEnd = renderer.raycastToPlane(ndc.x, ndc.y);
+
+    if (worldEnd && dragStart) {
+        const dx = worldEnd.x - dragStart.x;
+        const dz = worldEnd.z - dragStart.z;
+        let vx = dx * INPUT.DRAG_VELOCITY_SCALE;
+        let vz = dz * INPUT.DRAG_VELOCITY_SCALE;
+
+        /* Clamp to max launch speed */
+        const speed = Math.sqrt(vx * vx + vz * vz);
+        if (speed > INPUT.MAX_LAUNCH_SPEED) {
+            const ratio = INPUT.MAX_LAUNCH_SPEED / speed;
+            vx *= ratio;
+            vz *= ratio;
+        }
+
+        const pos = new Vector3(dragStart.x, 0, dragStart.z);
+        const vel = new Vector3(vx, 0, vz);
+        sim.addBody(selectedType, pos, vel);
+    }
+
+    dragStart = null;
+});
+
+/* Keyboard shortcuts */
+window.addEventListener('keydown', (e) => {
+    const keyActions = {
+        ' ': () => ui.btnPause.click(),
+        'c': () => ui.btnClear.click(),
+        'C': () => ui.btnClear.click(),
+        '1': () => selectType('planet'),
+        '2': () => selectType('star'),
+        '3': () => selectType('moon'),
+    };
+    keyActions[e.key]?.();
+});
 
 function selectType(type) {
     selectedType = type;
@@ -167,7 +172,7 @@ function loop(now) {
     }
 
     sim.step(delta / 1000, timeScale);
-    renderer.render(sim, drag, frameCount);
+    renderer.render(sim);
 
     /* Update HUD (throttled) */
     if (frameCount % 6 === 0) {
