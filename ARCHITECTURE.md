@@ -1,65 +1,54 @@
 # Architecture
 
-## Overview
-
-Orbital Playground is a browser-based N-body gravity simulator built with
-vanilla JavaScript and HTML5 Canvas. It uses ES modules for clean dependency
-management with zero build tooling.
-
 ## Design Principles
 
-- **Single Responsibility** — each module has one well-defined purpose.
-- **Dependency Injection** — modules receive their dependencies, never reach
-  for globals.
-- **Configuration over Magic Numbers** — all tuneable constants live in
-  `config.js`.
-- **Immutable Value Objects** — `Vector2` returns new instances rather than
-  mutating in place, keeping physics calculations predictable.
-- **Composition over Inheritance** — favour small, composable units.
+1. **ES modules, no bundler** — each file is a standalone module loaded via `<script type="module">` and `importmap`.
+2. **Single responsibility** — every module does one thing.
+3. **Dependency injection** — `app.js` is the only file that knows about everything else. All other modules are decoupled.
+4. **Immutable physics** — `Vector3` operations always return new instances. No mutation, no aliasing bugs.
+5. **Read-only rendering** — the renderer reads simulation state but never writes to it.
+6. **Zero build step** — Three.js loaded from CDN via import map.
 
 ## Module Map
 
 ```
-src/
-├── index.html              Entry point
-├── css/
-│   └── main.css            Design tokens, base styles, component styles
-└── js/
-    ├── app.js              Bootstrap — wires modules, owns the game loop
-    ├── config.js           Constants, body presets, color palettes
-    ├── core/
-    │   ├── Vector2.js      Immutable 2D vector math
-    │   ├── Body.js         Celestial body entity
-    │   └── Simulation.js   N-body physics engine (Velocity Verlet)
-    ├── rendering/
-    │   ├── Camera.js       Viewport ↔ world coordinate transforms
-    │   └── Renderer.js     Canvas drawing (bodies, trails, effects)
-    └── input/
-        └── InputHandler.js Mouse / touch / keyboard event handling
-
-tests/
-├── Vector2.test.js         Vector math unit tests
-└── Simulation.test.js      Physics engine integration tests
+src/js/
+  app.js                      ← Composition root (wires everything)
+  config.js                   ← All tuneable constants
+  core/
+    Vector3.js                ← Immutable 3D vector math
+    Body.js                   ← Celestial body data (pos, vel, mass, trail)
+    Simulation.js             ← Velocity Verlet N-body integrator
+  rendering/
+    Renderer3D.js             ← Three.js scene, camera, post-processing
 ```
 
 ## Data Flow
 
 ```
-InputHandler  ──▶  App  ──▶  Simulation.step()
-                    │              │
-                    │              ▼
-                    └──▶  Renderer.render(Simulation, Camera)
-                              │
-                              ▼
-                           Canvas
+User Input (pointer events)
+  → app.js (raycast to XZ plane → sim.addBody) 
+  → Simulation.step() (Verlet physics, collision resolution)
+  → Renderer3D.render() (sync Three.js meshes/trails to body state)
+  → EffectComposer → Bloom → screen
 ```
 
 ## Key Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| ES modules, no bundler | Zero config, deploys as-is to GitHub Pages |
-| Velocity Verlet integration | Energy-conserving, stable for orbital sims |
-| Sub-stepping | Multiple physics steps per frame for accuracy |
-| Canvas 2D (not WebGL) | Simpler, sufficient for ≤100 bodies, wide support |
-| Immutable Vector2 | Prevents subtle mutation bugs in physics code |
+### Three.js via Import Map
+Three.js is loaded from `cdn.jsdelivr.net` using a `<script type="importmap">`. This means:
+- Zero install / zero build for deployment
+- Works on GitHub Pages out of the box
+- Standard `import * as THREE from 'three'` syntax
+
+### Velocity Verlet Integrator
+Chosen over simple Euler because it's symplectic — it conserves energy, so orbits stay stable over thousands of frames. Uses configurable substeps per frame for close-encounter accuracy.
+
+### Immutable Vector3
+All vector operations return new `Vector3` instances. This prevents subtle bugs where two bodies share a velocity reference and one mutation affects both. The GC cost is negligible for the body counts we handle.
+
+### Bloom Post-processing
+The rendering pipeline uses Three.js `EffectComposer` with `UnrealBloomPass`. Stars emit light via `PointLight` and their emissive materials trigger the bloom threshold, creating a natural volumetric glow without any sprite tricks.
+
+### XZ Plane Placement
+Body placement raycasts from the camera through the mouse position to the y=0 plane. This keeps orbits viewable from the default 3D camera angle while allowing the camera to orbit freely around the system.
